@@ -23,6 +23,8 @@ ENV/
 
 # Model Checkpoints & Weights
 *.pth
+!models/cnn_lstm.pth
+!models/scalers.pkl
 *.pt
 *.ckpt
 
