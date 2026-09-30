@@ -1,1 +1,55 @@
+﻿# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C Python extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Model Checkpoints & Weights
+*.pth
+*.pt
+*.ckpt
+
+# Raw Datasets (NASA MATLAB files must not be committed)
+*.mat
 *.zip
+data/raw/
+5. Battery Data Set/
+
+# Environment Variables & Local Secrets
+.env
+*.env
+
+# Testing & Linting
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node / Frontend Artifacts
+node_modules/
+frontend/dist/
+frontend/node_modules/
+
+# Local Documentation & OS Artifacts
+*.pdf
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
