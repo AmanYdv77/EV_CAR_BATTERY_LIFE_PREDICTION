@@ -1,0 +1,16 @@
+.git
+.gitignore
+.github
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.venv
+venv
+env
+*.pdf
+battery_dataset.zip
+data/raw/*.mat
+frontend/node_modules
+frontend/dist
+tests/

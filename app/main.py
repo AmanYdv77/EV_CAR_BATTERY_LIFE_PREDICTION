@@ -1,4 +1,4 @@
-﻿"""
+"""
 FastAPI Model Serving API for EV Battery RUL Prediction Platform.
 """
 from typing import List, Dict, Any, Optional
@@ -7,7 +7,9 @@ from contextlib import asynccontextmanager
 import json
 import joblib
 import torch
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from torch.utils.data import DataLoader
@@ -39,16 +41,18 @@ state: Dict[str, Any] = {
     "model": None,
     "scaler_X": None,
     "max_rul": None,
-    "device": None
+    "device": None,
+    "battery_cache": None
 }
 
 def load_artifacts() -> None:
-    """Loads model weights and scalers into memory once."""
+    """Loads model weights, scalers, and optional battery cache into memory."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     state["device"] = device
     
     model_path = config.MODELS_DIR / "cnn_lstm.pth"
     scalers_path = config.MODELS_DIR / "scalers.pkl"
+    cache_path = config.MODELS_DIR / "battery_cache.pkl"
     
     if not model_path.exists() or not scalers_path.exists():
         print(f"Warning: Model artifacts not found in {config.MODELS_DIR}. Run train.py first.")
@@ -57,6 +61,10 @@ def load_artifacts() -> None:
     scalers = joblib.load(scalers_path)
     state["scaler_X"] = scalers["scaler_X"]
     state["max_rul"] = float(scalers["max_rul"])
+    
+    if cache_path.exists():
+        state["battery_cache"] = joblib.load(cache_path)
+        print("Battery evaluation cache loaded.")
     
     model = CNN_LSTM(feature_len=config.FEATURE_LEN).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
@@ -84,22 +92,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+dist_dir = config.PROJECT_ROOT / "frontend" / "dist"
+
 def get_available_battery_ids() -> List[str]:
-    """Returns sorted list of available battery IDs based on existing .mat files."""
+    """Returns sorted list of available battery IDs based on existing .mat files or cache."""
     try:
         files = config.get_battery_files()
-        return sorted([Path(f).stem for f in files])
+        if files:
+            return sorted([Path(f).stem for f in files])
     except FileNotFoundError:
-        return []
+        pass
+        
+    if state.get("battery_cache"):
+        return sorted(list(state["battery_cache"].keys()))
+    return []
 
-@app.get("/", response_model=HealthResponse, tags=["Health"])
-async def root_health():
-    """Health check endpoint verifying service operational status."""
+@app.get("/health", response_model=HealthResponse, tags=["Health"])
+async def service_health():
+    """Explicit health check endpoint."""
+    return {"status": "ok"}
+
+@app.get("/", tags=["Health"])
+async def root_endpoint(request: Request):
+    """Serves React frontend to web browsers, and JSON health check to API clients."""
+    accept = request.headers.get("accept", "")
+    index_path = dist_dir / "index.html"
+    if "text/html" in accept and index_path.exists():
+        return FileResponse(index_path)
     return {"status": "ok"}
 
 @app.get("/api/batteries", response_model=List[str], tags=["Batteries"])
 async def list_batteries():
-    """Returns list of battery IDs available for inference in DATA_DIR."""
+    """Returns list of battery IDs available for inference in DATA_DIR or cache."""
     return get_available_battery_ids()
 
 @app.get("/api/predict/{battery_id}", response_model=BatteryPredictionResponse, tags=["Inference"])
@@ -115,7 +139,16 @@ async def predict_battery_rul(battery_id: str):
         )
         
     mat_path = config.DATA_DIR / f"{battery_id}.mat"
-    if not mat_path.exists():
+    X_bat, y_bat = None, None
+    
+    if mat_path.exists():
+        try:
+            X_bat, y_bat = process_single_battery(str(mat_path), resample_len=config.FEATURE_LEN)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to process battery file: {str(e)}")
+    elif state.get("battery_cache") and battery_id in state["battery_cache"]:
+        X_bat, y_bat = state["battery_cache"][battery_id]
+    else:
         available = get_available_battery_ids()
         raise HTTPException(
             status_code=404,
@@ -123,7 +156,6 @@ async def predict_battery_rul(battery_id: str):
         )
         
     try:
-        X_bat, y_bat = process_single_battery(str(mat_path), resample_len=config.FEATURE_LEN)
         if len(X_bat) <= config.SEQ_LEN:
             raise HTTPException(
                 status_code=400,
@@ -182,3 +214,9 @@ async def get_latest_metrics():
             raise HTTPException(status_code=404, detail="No metric entries recorded.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading metrics: {str(e)}")
+
+# Mount static frontend assets (Registered AFTER all /api/* routes)
+if (dist_dir / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=str(dist_dir / "assets")), name="assets")
+if dist_dir.exists():
+    app.mount("/", StaticFiles(directory=str(dist_dir), html=True), name="frontend")
