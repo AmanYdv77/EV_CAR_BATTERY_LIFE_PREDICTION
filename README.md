@@ -1,6 +1,6 @@
 # Electric Vehicle Battery Remaining Useful Life (RUL) Prediction Platform
 
-[![CI Test Suite](https://github.com/AmanYdv77/EV_CAR_BATTERY_LIFE_PREDICTION/actions/workflows/ci.yml/badge.svg)](https://github.com/AmanYdv77/EV_CAR_BATTERY_LIFE_PREDICTION/actions/workflows/ci.yml)
+[![CI Test Suite](https://github.com/AmanYdv77/ev-lifespan/actions/workflows/ci.yml/badge.svg)](https://github.com/AmanYdv77/ev-lifespan/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch 2.x](https://img.shields.io/badge/PyTorch-2.x-EE4C2C.svg)](https://pytorch.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
@@ -172,8 +172,8 @@ Interactive Swagger documentation is available at `http://localhost:8000/docs` w
 ### 6.2 Backend Setup
 ```bash
 # Clone the repository
-git clone https://github.com/AmanYdv77/EV_CAR_BATTERY_LIFE_PREDICTION.git
-cd EV_CAR_BATTERY_LIFE_PREDICTION
+git clone https://github.com/AmanYdv77/ev-lifespan.git
+cd ev-lifespan
 
 # Create and activate virtual environment
 python -m venv .venv
@@ -230,7 +230,7 @@ Access the application at `http://localhost:8000`.
 
 ### 7.2 Render Deployment Guide
 1. Log in to [Render.com](https://render.com) and click **New + > Web Service**.
-2. Connect the GitHub repository `AmanYdv77/EV_CAR_BATTERY_LIFE_PREDICTION`.
+2. Connect the GitHub repository `AmanYdv77/ev-lifespan`.
 3. Configure the service settings:
    * **Runtime:** `Docker`
    * **Instance Type:** `Free`

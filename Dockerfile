@@ -16,9 +16,10 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PORT=8000
 
-# Install runtime dependencies
+# Install CPU-optimized PyTorch first, then other requirements (Keeps RAM under 150MB for Render 512MB tier)
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy backend application code, pre-trained weights, and config
 COPY config.py data.py model.py train.py evaluate.py ./
